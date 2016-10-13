@@ -3,6 +3,7 @@ package org.unfairfunction.smartsox
 import akka.actor._
 import com.typesafe.config._
 import scala.collection.JavaConversions._
+import org.unfairfunction.smartsox.util.NodeConfig
 
 object Main extends App {
 
