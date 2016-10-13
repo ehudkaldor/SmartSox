@@ -10,6 +10,7 @@ packageSummary := s"Akka ${version.value} Server"
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % version.value,
   "com.typesafe.akka" %% "akka-cluster" % version.value,
+  "com.typesafe.akka" %% "akka-cluster-tools" % version.value,
   "com.github.scopt" %% "scopt" % "3.2.0"
 )
 
