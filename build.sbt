@@ -1,6 +1,6 @@
 name := """smartsox"""
-version := "2.3.10"
-scalaVersion := "2.11.5"
+version := "2.4.11"
+scalaVersion := "2.11.8"
 
 enablePlugins(JavaAppPackaging)
 
