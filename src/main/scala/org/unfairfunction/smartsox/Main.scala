@@ -1,8 +1,7 @@
-package com.example
+package org.unfairfunction.smartsox
 
 import akka.actor._
 import com.typesafe.config._
-import java.net.{ InetAddress, NetworkInterface }
 import scala.collection.JavaConversions._
 
 object Main extends App {

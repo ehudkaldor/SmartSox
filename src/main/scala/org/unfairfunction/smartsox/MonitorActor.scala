@@ -1,8 +1,10 @@
-package com.example
+package org.unfairfunction.smartsox
 
 import akka.actor._
 import akka.cluster._
 import akka.cluster.ClusterEvent._
+import akka.cluster.ClusterEvent.MemberEvent
+import akka.cluster.ClusterEvent.UnreachableMember
 
 class MonitorActor extends Actor with ActorLogging {
 

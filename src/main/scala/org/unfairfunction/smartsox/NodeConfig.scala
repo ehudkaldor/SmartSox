@@ -1,4 +1,4 @@
-package com.example
+package org.unfairfunction.smartsox
 
 import com.typesafe.config._
 import scala.collection.JavaConversions._

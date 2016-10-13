@@ -1,4 +1,4 @@
-package com.example
+package org.unfairfunction.smartsox
 
 import scala.collection.JavaConversions._
 import java.net.NetworkInterface
