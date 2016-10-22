@@ -11,6 +11,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % version.value,
   "com.typesafe.akka" %% "akka-cluster" % version.value,
   "com.typesafe.akka" %% "akka-cluster-tools" % version.value,
+  "com.typesafe.akka" %% "akka-persistence" % version.value,
   "com.github.scopt" %% "scopt" % "3.2.0"
 )
 
