@@ -2,12 +2,17 @@ package org.unfairfunction.smartsox.actors
 
 import akka.actor.{Actor, ActorRef, ActorLogging, Props}
 import akka.actor.Terminated
+import java.util.Calendar
 
 object ThingsManager {
 
-  trait Command
+  trait Command {
+    protected val createTime: Calendar = Calendar.getInstance
+  }
   
-  trait Event
+  trait Event {
+    protected val createTime: Calendar = Calendar.getInstance
+  }
 
   val maxThings = 40
   val thingsToKillAtOnce = 20
