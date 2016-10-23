@@ -5,6 +5,7 @@ import org.unfairfunction.smartsox.actors.ThingsManager
 object DoorsManager {
   import ThingsManager._
   
+  
 }
 
 class DoorsManager extends ThingsManager {
