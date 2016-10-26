@@ -47,10 +47,10 @@ trait ThingsManager extends Actor with ActorLogging {
     context child id getOrElse create(id)
 
   protected def create(id: String): ActorRef = {
-    val nextThing = context.actorOf(thingProps(id), id)
+    val nextThing = context.actorOf(props(id), id)
     context watch nextThing
     nextThing
   }
   
-  def thingProps(id: String): Props
+  def props(id: String): Props
 }
