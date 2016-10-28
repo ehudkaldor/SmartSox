@@ -73,94 +73,120 @@ class Door(val persistenceId: String) extends Thing {
         state = Uninitialized
       }
     }
+    log.debug(s"state updated to $state")
   }
   
   val initial: Receive = {
     case GetState => {
+      log.debug(s"door $persistenceId, state $state, received GetState")
       respond()
     }
     case OpenDoor => {
-      log.info("opening door")
+      log.debug(s"door $persistenceId, state $state, received OpenDoor")
       persist(DoorOpening)(afterEventPersisted)
       openDoor 
     }
     case CloseDoor => {
-      log.info("closing door")
+      log.debug(s"door $persistenceId, state $state, received CloseDoor")
       persist(DoorClosing)(afterEventPersisted)
       closeDoor 
+    }
+    case DoorOpening => {
+      log.debug(s"got event DoorOpening in state $state, meaning some opened the door manually")
+      persist(DoorOpening)(afterEventPersisted)
+    }
+    case DoorClosing => {
+      log.debug(s"got event DoorClosing in state $state, meaning some closed the door manually")
+      persist(DoorClosing)(afterEventPersisted)
+    }
+    case evt => {
+//      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
     }
   }
   
   val opened: Receive = {
     case GetState => {
+      log.debug(s"door $persistenceId, state $state, received GetState")
       respond()
     }
     case CloseDoor => {
-      log.info("closing door")
+      log.debug(s"door $persistenceId, state $state, received CloseDoor")
       persist(DoorClosing)(afterEventPersisted)
       closeDoor 
+    }
+    case DoorClosing => {
+      log.debug(s"got event DoorClosing in state $state, meaning some closed the door manually")
+      persist(DoorClosing)(afterEventPersisted)
+    }
+    case evt => {
+//      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
     }
   }
   
   val closed: Receive = {
     case GetState => {
+      log.debug(s"door $persistenceId, state $state, received GetState")
       respond()
     }
     case OpenDoor => {
-      log.info("opening door")
+      log.debug(s"door $persistenceId, state $state, received OpenDoor")
       persist(DoorOpening)(afterEventPersisted)
       openDoor 
+    }
+    case DoorOpening => {
+      log.debug(s"got event DoorOpening in state $state, meaning some opened the door manually")
+      persist(DoorOpening)(afterEventPersisted)
+    }
+    case evt => {
+//      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
     }
   }
   
   val opening: Receive = {
     case GetState => {
+      log.debug(s"door $persistenceId, state $state, received GetState")
       respond()
     }
     case DoorOpened => {
-      log.info("door opened")
+      log.debug(s"door $persistenceId,state $state, received DoorOpened")
       persist(DoorOpened)(afterEventPersisted)
     }
     case DoorOpeningFailed(msg) => {
-      log.error(s"door failed opening with message: $msg")
+      log.error(s"door $persistenceId, state $state, door failed to open with message: $msg")
       persist(DoorOpeningFailed(msg))(afterEventPersisted)
+    }
+    case evt => {
+//      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
     }
   }
   
   val closing: Receive = {
     case GetState => {
+      log.debug(s"door $persistenceId, state $state, received GetState")
       respond()
     }
     case DoorClosed => {
-      log.info("door closed")
+      log.debug(s"door $persistenceId, state $state, received DoorClosed")
       persist(DoorClosed)(afterEventPersisted)
     }
     case DoorClosingFailed(msg) => {
-      log.error(s"door failed closing with message: $msg")
+      log.error(s"door $persistenceId, state $state, door failed tp close with message: $msg")
       persist(DoorClosingFailed(msg))(afterEventPersisted)
+    }
+    case evt => {
+//      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
     }
   }
   
   override val receiveCommand: Receive = initial
   
   private def closeDoor = {
-//    Random.nextBoolean match {
-//      case true => self ! DoorClosed
-//      case false => self ! DoorClosingFailed("Something obstracting the door from closing")
-//      case true => {
-        state = Closed
-        context become closed
-//      }
-//      case false => self ! DoorClosingFailed("Something obstracting the door from closing")
-//    }
+    log.debug(s"door $persistenceId, closing door")
+    self ! DoorClosed
   }
   
   private def openDoor = {
-    state = Opened
-    context become opened
-//    Random.nextBoolean match {
-//      case true => self ! DoorOpened
-//      case false => self ! DoorOpeningFailed("Something obstracting the door from closing")
-//    }    
+    log.debug(s"door $persistenceId, opening door")
+    self ! DoorOpened
   }
 }
