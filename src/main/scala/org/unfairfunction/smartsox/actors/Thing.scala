@@ -58,6 +58,7 @@ trait Thing extends Actor with PersistentActor with ActorLogging{
   }
 
   protected def respond(): Unit = {
+//    log.debug(s"sender: $sender()")
     sender() ! state
     context.parent ! Acknowledge(persistenceId)
   }
