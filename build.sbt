@@ -7,6 +7,8 @@ enablePlugins(JavaAppPackaging)
 maintainer := "Nepomuk Seiler"
 packageSummary := s"Akka ${version.value} Server"
 
+resolvers += Resolver.jcenterRepo
+
 libraryDependencies ++= Seq(
   "com.typesafe.akka"           %% "akka-actor" % version.value,
   "com.typesafe.akka"           %% "akka-cluster" % version.value,
@@ -18,7 +20,9 @@ libraryDependencies ++= Seq(
   "org.fusesource.leveldbjni"   % "leveldbjni-all"   % "1.8",
   "ch.qos.logback"              % "logback-classic" % "1.1.7",
   "org.scalatest"               %% "scalatest" % "2.2.1" % "test",
-  "com.github.scopt"            %% "scopt" % "3.2.0"
+  "com.github.romix.akka"       %% "akka-kryo-serialization" % "0.4.1",
+  "com.github.scopt"            %% "scopt" % "3.2.0",
+  "com.github.dnvriend"         %% "akka-persistence-inmemory" % "1.3.11"
 )
 
 // Create custom run tasks to start a seed and a cluster node
