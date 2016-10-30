@@ -5,18 +5,14 @@ import akka.actor.ActorSystem
 import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.testkit._
-import org.unfairfunction.smartsox.actors.Thing.GetState
+import org.unfairfunction.smartsox.actors.Thing.{GetState, Uninitialized, Die}
 import org.scalatest.Matchers
 import org.scalatest.FlatSpecLike
 import org.unfairfunction.smartsox.actors.Thing
-import org.unfairfunction.smartsox.actors.Thing.Uninitialized
-import org.unfairfunction.smartsox.things.door.Door.OpenDoor
-import org.unfairfunction.smartsox.things.door.Door.Opened
 import org.scalatest.BeforeAndAfterEach
-import org.unfairfunction.smartsox.things.door.Door.Opening
-import org.unfairfunction.smartsox.things.door.Door.CloseDoor
-import org.unfairfunction.smartsox.things.door.Door.Closing
-import org.unfairfunction.smartsox.things.door.Door.Closed
+import org.unfairfunction.smartsox.things.door.Door.{OpenDoor, Opened, Opening, CloseDoor, Closing, Closed}
+import akka.actor.PoisonPill
+import akka.actor.Terminated
 
 class DoorSpec(system: ActorSystem)
   extends TestKit(system)
@@ -46,7 +42,7 @@ class DoorSpec(system: ActorSystem)
     expectMsg(Uninitialized)
   }
   
-  it should "return state Opening after sent message to open door, and Opened afterwards" in {
+  it should "return state Opening after sending message to open door, and Opened on GetState afterwards" in {
     val door = system.actorOf(Door.props("testdoor3"))
     door ! OpenDoor
     expectMsg(Opening)
@@ -55,12 +51,19 @@ class DoorSpec(system: ActorSystem)
     expectMsg(Opened)
   }
   
-  it should "return state Closing after sent message to close door, and Closed afterwards" in {
+  it should "return state Closing after sending message to close door, and Closed on GetState afterwards" in {
     val door = system.actorOf(Door.props("testdoor4"))
     door ! CloseDoor
     expectMsg(Closing)
     Thread.sleep(1000)
     door ! GetState
     expectMsg(Closed)
+  }
+  
+  it should "die after instructed to die" in {
+    val door = system.actorOf(Door.props("testdoor5"))
+    watch(door)
+    door ! Die
+    expectMsg(Terminated(door)(true, true))
   }
 }
