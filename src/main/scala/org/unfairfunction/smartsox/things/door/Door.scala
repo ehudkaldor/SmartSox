@@ -5,6 +5,7 @@ import akka.actor.Props
 import akka.persistence.SnapshotMetadata
 import org.unfairfunction.smartsox.actors.Thing.{GetState, Event, Uninitialized}
 import scala.util.Random
+import org.unfairfunction.smartsox.actors.Thing.Die
 
 object Door {
   import Thing._
@@ -99,6 +100,10 @@ class Door(val persistenceId: String) extends Thing {
       log.debug(s"got event DoorClosing in state $state, meaning some closed the door manually")
       persist(DoorClosing)(afterEventPersisted)
     }
+    case Die => {
+      log.debug(s"door $persistenceId, got command to Die. Dying")
+      context stop self
+    }
     case evt => {
 //      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
     }
@@ -117,6 +122,10 @@ class Door(val persistenceId: String) extends Thing {
     case DoorClosing => {
       log.debug(s"got event DoorClosing in state $state, meaning some closed the door manually")
       persist(DoorClosing)(afterEventPersisted)
+    }
+    case Die => {
+      log.debug(s"door $persistenceId, got command to Die. Dying")
+      context stop self
     }
     case evt => {
 //      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
@@ -137,6 +146,10 @@ class Door(val persistenceId: String) extends Thing {
       log.debug(s"got event DoorOpening in state $state, meaning some opened the door manually")
       persist(DoorOpening)(afterEventPersisted)
     }
+    case Die => {
+      log.debug(s"door $persistenceId, got command to Die. Dying")
+      context stop self
+    }
     case evt => {
 //      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
     }
@@ -155,6 +168,10 @@ class Door(val persistenceId: String) extends Thing {
       log.error(s"door $persistenceId, state $state, door failed to open with message: $msg")
       persist(DoorOpeningFailed(msg))(afterEventPersisted)
     }
+    case Die => {
+      log.debug(s"door $persistenceId, got command to Die. Dying")
+      context stop self
+    }
     case evt => {
 //      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
     }
@@ -172,6 +189,10 @@ class Door(val persistenceId: String) extends Thing {
     case DoorClosingFailed(msg) => {
       log.error(s"door $persistenceId, state $state, door failed tp close with message: $msg")
       persist(DoorClosingFailed(msg))(afterEventPersisted)
+    }
+    case Die => {
+      log.debug(s"door $persistenceId, got command to Die. Dying")
+      context stop self
     }
     case evt => {
 //      log.debug(s"door $persistenceId, state $state, received event $evt and not sure what to do. ignoring")
