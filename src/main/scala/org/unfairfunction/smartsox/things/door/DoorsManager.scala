@@ -17,7 +17,10 @@ object DoorsManager {
 }
 
 class DoorsManager extends ThingsManager {
+  import ThingsManager._
   import DoorsManager._
+  
+  log.debug(s"DoorsManager ${context.self.path.name}  created")
   
   override def processCommand = {
     case AddDoor(id) => processThingCommand(id, GetState)
@@ -27,4 +30,6 @@ class DoorsManager extends ThingsManager {
   }
     
   override def props(id: String) = DoorsManager.props(id)
+  
+  override def thingProps(id: String) = Door.props(id)
 }
