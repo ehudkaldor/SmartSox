@@ -7,8 +7,9 @@ import org.unfairfunction.smartsox.util.Acknowledge
 import java.util.Calendar
 
 object Thing {
-  trait State
+  trait State 
   case object Uninitialized extends State
+  case object Retired extends State
 
   trait Command {
     protected val createTime: Calendar = Calendar.getInstance
@@ -24,8 +25,10 @@ object Thing {
 //  case object Remove extends Command
   case object GetState extends Command
   case object Die extends Command
+  case object Retire extends Command
+  case object Unretire extends Command
 
-  case object KillThing extends Command
+//  case object KillThing extends Command
 
   val eventsPerSnapshot = 10  
 }
