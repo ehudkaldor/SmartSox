@@ -1,25 +1,20 @@
 package org.unfairfunction.smartsox.things.door
 
-import org.scalatest.BeforeAndAfterAll
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, PoisonPill, Terminated}
 import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.testkit._
+import org.unfairfunction.smartsox.actors.Thing
+import org.unfairfunction.smartsox.things.door.Door._
 import org.unfairfunction.smartsox.actors.Thing.{GetState, Uninitialized, Die}
 import org.scalatest.Matchers
 import org.scalatest.FlatSpecLike
-import org.unfairfunction.smartsox.actors.Thing
-import org.scalatest.BeforeAndAfterEach
-import org.unfairfunction.smartsox.things.door.Door.{OpenDoor, Opened, Opening, CloseDoor, Closing, Closed}
-import akka.actor.PoisonPill
-import akka.actor.Terminated
 
 class DoorSpec(system: ActorSystem)
   extends TestKit(system)
   with ImplicitSender
   with Matchers
   with FlatSpecLike
-  with BeforeAndAfterAll
   with InMemoryCleanup {
 
   def this() = this(ActorSystem("DoorSpec"))  
@@ -27,23 +22,23 @@ class DoorSpec(system: ActorSystem)
 
   implicit val executionContext = system.dispatcher
   
-  override def afterAll = {
-    system.terminate()
-  }
+//  override def afterAll = {
+//    system.terminate()
+//  }
   
   "Door" should "should be created correctly" in {
-    val door = system.actorOf(Door.props("testdoor1"))
+    val door = system.actorOf(Door.props("testdoorCreate"))
     door should not be null
   }
   
   it should "return state Uninitialized if not changed" in {
-    val door = system.actorOf(Door.props("testdoor2"))
+    val door = system.actorOf(Door.props("testdoorUninitialized"))
     door ! GetState
     expectMsg(Uninitialized)
   }
   
   it should "return state Opening after sending message to open door, and Opened on GetState afterwards" in {
-    val door = system.actorOf(Door.props("testdoor3"))
+    val door = system.actorOf(Door.props("testdoorOpen"))
     door ! OpenDoor
     expectMsg(Opening)
     Thread.sleep(1000)
@@ -52,7 +47,7 @@ class DoorSpec(system: ActorSystem)
   }
   
   it should "return state Closing after sending message to close door, and Closed on GetState afterwards" in {
-    val door = system.actorOf(Door.props("testdoor4"))
+    val door = system.actorOf(Door.props("testdoorClose"))
     door ! CloseDoor
     expectMsg(Closing)
     Thread.sleep(1000)
@@ -60,8 +55,72 @@ class DoorSpec(system: ActorSystem)
     expectMsg(Closed)
   }
   
+  it should "only lock from Closed state" in {
+    val door = system.actorOf(Door.props("testdoorLockFromClosedOnly"))
+    door ! GetState
+    expectMsg(Uninitialized)
+    door ! LockDoor
+//    door ! GetState
+    expectMsg(Uninitialized)
+    door ! OpenDoor
+    expectMsg(Opening)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Opened)        
+    door ! LockDoor
+//    door ! GetState
+    expectMsg(Opened)
+    door ! CloseDoor
+    expectMsg(Closing)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Closed)        
+    door ! LockDoor
+    expectMsg(Locking)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Locked)        
+  }
+  
+  it should "return state Locking after sending message to lock door, and Locked on GetState afterwords" in {
+    val door = system.actorOf(Door.props("testdoorLock"))
+    door ! CloseDoor
+    expectMsg(Closing)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Closed)        
+    door ! LockDoor
+    expectMsg(Locking)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Locked)    
+  }
+  
+  it should "stay locked when told to lock, even on sending open and close messages, and return state Closed when told to unlock" in {
+    val door = system.actorOf(Door.props("testdoorStayLocked"))
+    door ! CloseDoor
+    expectMsg(Closing)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Closed)        
+    door ! LockDoor
+    expectMsg(Locking)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Locked)    
+    door ! OpenDoor
+    expectMsg(Locked)
+    door ! CloseDoor
+    expectMsg(Locked)
+    door ! UnlockDoor
+    expectMsg(Unlocking)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Closed)    
+  }
+  
   it should "die after instructed to die" in {
-    val door = system.actorOf(Door.props("testdoor5"))
+    val door = system.actorOf(Door.props("testdoorDie"))
     watch(door)
     door ! Die
     expectMsg(Terminated(door)(true, true))
