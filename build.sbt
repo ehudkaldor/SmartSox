@@ -4,7 +4,7 @@ scalaVersion := "2.11.8"
 
 enablePlugins(JavaAppPackaging)
 
-maintainer := "Nepomuk Seiler"
+maintainer := "Ehud Kaldor"
 packageSummary := s"Akka ${version.value} Server"
 
 resolvers += Resolver.jcenterRepo
