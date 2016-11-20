@@ -1,11 +1,9 @@
 package org.unfairfunction.smartsox.things.door
 
 import org.unfairfunction.smartsox.actors.Thing
+import org.unfairfunction.smartsox.actors.Thing.{GetState, Event, Uninitialized, Die}
 import akka.actor.Props
 import akka.persistence.SnapshotMetadata
-import org.unfairfunction.smartsox.actors.Thing.{GetState, Event, Uninitialized}
-import scala.util.Random
-import org.unfairfunction.smartsox.actors.Thing.Die
 
 object Door {
   import Thing._
@@ -51,7 +49,7 @@ class Door(val persistenceId: String) extends Thing {
   this.state = Uninitialized
   log.debug(s"door $persistenceId created")
   
-  protected def restoreFromSnapshot(metadata: SnapshotMetadata,state: Thing.State): Unit = {
+  protected def restoreFromSnapshot(metadata: SnapshotMetadata, state: Thing.State): Unit = {
     this.state = state
     state match {
       case Opened => context become opened
@@ -302,7 +300,7 @@ class Door(val persistenceId: String) extends Thing {
   }
 
   override val receiveCommand: Receive = initial
-  
+
   private def closeDoor = {
     log.debug(s"door $persistenceId, closing door")
     self ! DoorClosed
