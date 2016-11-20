@@ -14,7 +14,7 @@ object Main extends App {
     val system = ActorSystem(c.clusterName, c.config)
 
     // Register a monitor actor for demo purposes
-    system.actorOf(Props[MonitorActor], "cluster-monitor")
+//    system.actorOf(Props[MonitorActor], "cluster-monitor")
 
     system.log info s"ActorSystem ${system.name} started successfully"
   }
