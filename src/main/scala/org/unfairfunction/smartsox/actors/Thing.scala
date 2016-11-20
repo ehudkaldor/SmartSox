@@ -11,9 +11,6 @@ object Thing {
   case object Uninitialized extends State
   case object Retired extends State
 
-  trait Command {
-    protected val createTime: Calendar = Calendar.getInstance
-  }
   
   trait Event {
     protected val createTime: Calendar = Calendar.getInstance
@@ -21,8 +18,10 @@ object Thing {
 
   trait CommandFailed extends Event
 
-//  trait Command
-//  case object Remove extends Command
+  trait Command {
+    protected val createTime: Calendar = Calendar.getInstance
+  }
+
   case object GetState extends Command
   case object Die extends Command
   case object Retire extends Command
@@ -35,6 +34,11 @@ object Thing {
 
 trait Thing extends Actor with PersistentActor with ActorLogging{
   import Thing._
+  import akka.cluster.pubsub.DistributedPubSub
+  import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Subscribe}
+
+  
+  val mediator = DistributedPubSub(context.system).mediator
   
   override val persistenceId: String
 
@@ -43,6 +47,8 @@ trait Thing extends Actor with PersistentActor with ActorLogging{
   private var eventsSinceLastSnapshot = 0
 
   def updateState(evt: Event): Unit
+  
+  mediator ! Subscribe("general", self)
  
   protected def afterEventPersisted(evt: Event): Unit = {
     eventsSinceLastSnapshot += 1
@@ -66,7 +72,10 @@ trait Thing extends Actor with PersistentActor with ActorLogging{
     context.parent ! Acknowledge(persistenceId)
   }
 
-  private def publish(event: Event) = context.system.eventStream.publish(event)
+  private def publish(event: Event) = {
+    context.system.eventStream.publish(event)
+    mediator ! Publish(persistenceId, event)
+  }
   
   override val receiveRecover: Receive = {
     case evt: Event =>
