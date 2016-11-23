@@ -87,13 +87,20 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
     case Event(GetState, _) =>
       stay replying Closed
     case Event(OpenDoor, _) =>
-      goto (Opening) applying DoorOpening andThen {
-        case _ => openDoor
+      goto (Opening) applying DoorOpening replying Opening andThen {
+        case _ => {
+          openDoor
+//          sender ! Opened
+        }
+      } 
+    case Event(LockDoor, _) =>
+      goto (Locking) applying DoorLocking replying Locking andThen {
+        case _ => lockDoor
       }
     case Event(Die, _) =>
       stop()
     case evt =>
-      stay andThen {
+      stay replying Closed andThen {
         case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
       }
   }
@@ -101,12 +108,18 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
   when (Opened) {
     case Event(GetState, _) =>
       stay replying Opened
+    case Event(CloseDoor, _) =>
+      goto (Closing) applying DoorClosing replying Closing andThen {
+        case _ => {
+          closeDoor
+        }
+      }
 
 
     case Event(Die, _) =>
       stop()
     case evt =>
-      stay andThen {
+      stay replying Opened andThen {
         case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
       }
   }
@@ -114,12 +127,14 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
   when (Closing) {
     case Event(GetState, _) =>
       stay replying Closing
+    case Event(DoorClosed, _) =>
+      goto (Closed) applying DoorClosed replying Closed
 
 
     case Event(Die, _) =>
       stop()
     case evt =>
-      stay andThen {
+      stay replying Closing andThen {
         case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
       }
   }
@@ -127,12 +142,14 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
   when (Opening) {
     case Event(GetState, _) =>
       stay replying Opening
+    case Event(DoorOpened, _) =>
+      goto (Opened) applying DoorOpened replying Opened
 
 
     case Event(Die, _) =>
       stop()
     case evt =>
-      stay andThen {
+      stay replying Opening andThen {
         case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
       }
   }
@@ -140,12 +157,14 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
   when (Locking) {
     case Event(GetState, _) =>
       stay replying Locking
+    case Event (DoorLocked, _) =>
+      goto (Locked) applying DoorLocked replying Locked
 
 
     case Event(Die, _) =>
       stop()
     case evt =>
-      stay andThen {
+      stay replying Locking andThen {
         case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
       }
   }
@@ -153,12 +172,14 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
   when (Unlocking) {
     case Event(GetState, _) =>
       stay replying Unlocking
+    case Event(DoorClosed, _) =>
+      goto (Closed) applying DoorClosed replying Closed
 
 
     case Event(Die, _) =>
       stop()
     case evt =>
-      stay andThen {
+      stay replying Unlocking andThen {
         case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
       }
   }
@@ -166,12 +187,16 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
   when (Locked) {
     case Event(GetState, _) =>
       stay replying Locked
+    case Event (UnlockDoor, _) =>
+      goto (Unlocking) applying DoorUnlocking replying Unlocking andThen {
+        case _ => unlockDoor
+      }
 
 
     case Event(Die, _) =>
       stop()
     case evt =>
-      stay andThen {
+      stay replying Locked andThen {
         case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
       }
   }
