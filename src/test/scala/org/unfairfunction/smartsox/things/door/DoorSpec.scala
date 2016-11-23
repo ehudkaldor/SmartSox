@@ -4,9 +4,9 @@ import akka.actor.{ActorSystem, PoisonPill, Terminated}
 import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.testkit._
-import org.unfairfunction.smartsox.actors.Thing
+//import org.unfairfunction.smartsox.actors.Thing
 import org.unfairfunction.smartsox.things.door.Door._
-import org.unfairfunction.smartsox.actors.Thing.{GetState, Uninitialized, Die}
+//import org.unfairfunction.smartsox.actors.Thing.{GetState, Uninitialized, Die}
 import org.scalatest.Matchers
 import org.scalatest.FlatSpecLike
 
@@ -31,20 +31,22 @@ class DoorSpec(system: ActorSystem)
     door should not be null
   }
   
-  it should "return state Uninitialized if not changed" in {
+  it should "return state Opened if not changed" in {
     val door = system.actorOf(Door.props("testdoorUninitialized"))
-    door ! GetState
-    expectMsg(Uninitialized)
-  }
-  
-  it should "return state Opening after sending message to open door, and Opened on GetState afterwards" in {
-    val door = system.actorOf(Door.props("testdoorOpen"))
-    door ! OpenDoor
-    expectMsg(Opening)
-    Thread.sleep(1000)
+    door should not be null
     door ! GetState
     expectMsg(Opened)
+    door ! Die
   }
+  
+//  it should "return state Opening after sending message to open door, and Opened on GetState afterwards" in {
+//    val door = system.actorOf(Door.props("testdoorOpen"))
+//    door ! OpenDoor
+//    expectMsg(Opening)
+//    Thread.sleep(1000)
+//    door ! GetState
+//    expectMsg(Opened)
+//  }
   
   it should "return state Closing after sending message to close door, and Closed on GetState afterwards" in {
     val door = system.actorOf(Door.props("testdoorClose"))
@@ -53,23 +55,24 @@ class DoorSpec(system: ActorSystem)
     Thread.sleep(1000)
     door ! GetState
     expectMsg(Closed)
+    door ! Die
   }
   
   it should "only lock from Closed state" in {
     val door = system.actorOf(Door.props("testdoorLockFromClosedOnly"))
-    door ! GetState
-    expectMsg(Uninitialized)
+//    door ! GetState
+//    expectMsg(Closed)
     door ! LockDoor
 //    door ! GetState
-    expectMsg(Uninitialized)
-    door ! OpenDoor
-    expectMsg(Opening)
-    Thread.sleep(1000)
-    door ! GetState
+//    expectMsg(Uninitialized)
+//    door ! OpenDoor
+//    expectMsg(Opening)
+//    Thread.sleep(1000)
+//    door ! GetState
     expectMsg(Opened)        
-    door ! LockDoor
+//    door ! LockDoor
 //    door ! GetState
-    expectMsg(Opened)
+//    expectMsg(Opened)
     door ! CloseDoor
     expectMsg(Closing)
     Thread.sleep(1000)
@@ -79,7 +82,12 @@ class DoorSpec(system: ActorSystem)
     expectMsg(Locking)
     Thread.sleep(1000)
     door ! GetState
-    expectMsg(Locked)        
+    expectMsg(Locked)  
+    door ! UnlockDoor
+    expectMsg(Unlocking)
+    Thread.sleep(1000)
+    door ! GetState
+    expectMsg(Closed)
   }
   
   it should "return state Locking after sending message to lock door, and Locked on GetState afterwords" in {
@@ -109,8 +117,10 @@ class DoorSpec(system: ActorSystem)
     door ! GetState
     expectMsg(Locked)    
     door ! OpenDoor
+//    door ! GetState
     expectMsg(Locked)
     door ! CloseDoor
+//    door ! GetState
     expectMsg(Locked)
     door ! UnlockDoor
     expectMsg(Unlocking)
