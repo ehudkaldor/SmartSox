@@ -31,8 +31,8 @@ class DoorsManager extends Actor with ActorLogging {
   def receive =  {
     case DoorsManager.GetState(id) => sendToChild(id, Door.GetState)
     case DoorsManager.AddDoor(id) => sendToChild(id, Door.GetState)
-//    case DoorsManager.RemoveDoor(id) => sendToChild(id, Door.Die)
-    case DoorsManager.RemoveDoor(id) => context stop findOrCreate(id)
+    case DoorsManager.RemoveDoor(id) => sendToChild(id, Door.Die)
+//    case DoorsManager.RemoveDoor(id) => context stop findOrCreate(id)
     case DoorsManager.Open(id) => sendToChild(id, Door.OpenDoor)
     case DoorsManager.Close(id) => sendToChild(id, Door.CloseDoor)    
   }
