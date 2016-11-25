@@ -9,6 +9,9 @@ import org.unfairfunction.smartsox.things.door.Door._
 //import org.unfairfunction.smartsox.actors.Thing.{GetState, Uninitialized, Die}
 import org.scalatest.Matchers
 import org.scalatest.FlatSpecLike
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
+import akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck
 
 class DoorSpec(system: ActorSystem)
   extends TestKit(system)
@@ -49,17 +52,26 @@ class DoorSpec(system: ActorSystem)
 //  }
   
   it should "return state Closing after sending message to close door, and Closed on GetState afterwards" in {
+
     val door = system.actorOf(Door.props("testdoorClose"))
+    val mediator = DistributedPubSub(system).mediator
+    mediator ! Subscribe("testdoorClose", self)
+    expectMsgType[SubscribeAck]
+    
     door ! CloseDoor
     expectMsg(Closing)
     Thread.sleep(1000)
-    door ! GetState
+//    door ! GetState
     expectMsg(Closed)
     door ! Die
   }
   
   it should "only lock from Closed state" in {
     val door = system.actorOf(Door.props("testdoorLockFromClosedOnly"))
+    val mediator = DistributedPubSub(system).mediator
+    
+    mediator ! Subscribe("testdoorLockFromClosedOnly", self)
+    expectMsgType[SubscribeAck]
 //    door ! GetState
 //    expectMsg(Closed)
     door ! LockDoor
@@ -75,46 +87,52 @@ class DoorSpec(system: ActorSystem)
 //    expectMsg(Opened)
     door ! CloseDoor
     expectMsg(Closing)
-    Thread.sleep(1000)
-    door ! GetState
+//    Thread.sleep(1000)
+//    door ! GetState
     expectMsg(Closed)        
     door ! LockDoor
     expectMsg(Locking)
     Thread.sleep(1000)
-    door ! GetState
+//    door ! GetState
     expectMsg(Locked)  
     door ! UnlockDoor
     expectMsg(Unlocking)
-    Thread.sleep(1000)
-    door ! GetState
+//    Thread.sleep(1000)
+//    door ! GetState
     expectMsg(Closed)
   }
   
   it should "return state Locking after sending message to lock door, and Locked on GetState afterwords" in {
     val door = system.actorOf(Door.props("testdoorLock"))
+    val mediator = DistributedPubSub(system).mediator
+    mediator ! Subscribe("testdoorLock", self)
+    expectMsgType[SubscribeAck]
     door ! CloseDoor
     expectMsg(Closing)
     Thread.sleep(1000)
-    door ! GetState
+//    door ! GetState
     expectMsg(Closed)        
     door ! LockDoor
     expectMsg(Locking)
-    Thread.sleep(1000)
-    door ! GetState
+//    Thread.sleep(1000)
+//    door ! GetState
     expectMsg(Locked)    
   }
   
   it should "stay locked when told to lock, even on sending open and close messages, and return state Closed when told to unlock" in {
     val door = system.actorOf(Door.props("testdoorStayLocked"))
+    val mediator = DistributedPubSub(system).mediator
+    mediator ! Subscribe("testdoorStayLocked", self)
+    expectMsgType[SubscribeAck]
     door ! CloseDoor
     expectMsg(Closing)
     Thread.sleep(1000)
-    door ! GetState
+//    door ! GetState
     expectMsg(Closed)        
     door ! LockDoor
     expectMsg(Locking)
     Thread.sleep(1000)
-    door ! GetState
+//    door ! GetState
     expectMsg(Locked)    
     door ! OpenDoor
 //    door ! GetState
@@ -123,9 +141,10 @@ class DoorSpec(system: ActorSystem)
 //    door ! GetState
     expectMsg(Locked)
     door ! UnlockDoor
+//    Thread.sleep(3000)
     expectMsg(Unlocking)
     Thread.sleep(1000)
-    door ! GetState
+//    door ! GetState
     expectMsg(Closed)    
   }
   
