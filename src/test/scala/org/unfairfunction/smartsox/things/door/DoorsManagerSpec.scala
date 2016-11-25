@@ -11,6 +11,9 @@ import akka.util.Timeout
 import org.unfairfunction.smartsox.things.door.DoorsManager.{AddDoor, RemoveDoor, Open, Close, GetState}
 import org.unfairfunction.smartsox.things.door.Door.{DoorOpening, Opening, Opened, Closing, Closed}
 import akka.actor.Terminated
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
+import akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck
 
 class DoorsManagerSpec(system: ActorSystem)
   extends TestKit(system)
@@ -32,30 +35,35 @@ class DoorsManagerSpec(system: ActorSystem)
   it should "create a new door" in {
     val dm = system.actorOf(DoorsManager.props("DoorsManager2"), "DoorsManager2")
     dm ! AddDoor("DoorsManagerTestDoor2")
-    expectMsg(Opened)
-    
+    expectMsg(Opened)    
   }
   
   it should "open a door and then close it" in {
     val dm = system.actorOf(DoorsManager.props("DoorsManager3"), "DoorsManager3")
     dm ! AddDoor("DoorsManagerTestDoor3")
     expectMsg(Opened)
+    val mediator = DistributedPubSub(system).mediator
+    mediator ! Subscribe("DoorsManagerTestDoor3", self)
+    expectMsgType[SubscribeAck]
 //    dm ! Open("DoorsManagerTestDoor3")
 //    expectMsg(Opening)
     dm ! GetState("DoorsManagerTestDoor3")
     expectMsg(Opened)
     dm ! Close("DoorsManagerTestDoor3")
+//    expectMsg(Closing)
+//    Thread.sleep(1000)
+//    dm ! GetState("DoorsManagerTestDoor3")
     expectMsg(Closing)
-    Thread.sleep(1000)
-    dm ! GetState("DoorsManagerTestDoor3")
     expectMsg(Closed)
   }
   
   it should "destroy a door" in {
     val dm = system.actorOf(DoorsManager.props("DoorsManager4"),"DoorsManager4")
-    watch(dm)
     dm ! AddDoor("DoorsManagerTestDoor4")
     expectMsg(Opened)
+    val mediator = DistributedPubSub(system).mediator
+    mediator ! Subscribe("DoorsManagerTestDoor4", self)
+    expectMsgType[SubscribeAck]
     dm ! Close("DoorsManagerTestDoor4")
     expectMsg(Closing)
     Thread.sleep(1000)
@@ -63,9 +71,10 @@ class DoorsManagerSpec(system: ActorSystem)
     expectMsg(Closed)
 
     dm ! RemoveDoor("DoorsManagerTestDoor4")
-    Thread.sleep(10000)
-    dm ! AddDoor("DoorsManagerTestDoor4")
-    expectMsg(Opened)
+//    Thread.sleep(1000)
+//    expectMsg(Opened)
+//    dm ! AddDoor("DoorsManagerTestDoor4")
+//    expectMsg(Opened)
   }
   
 }
