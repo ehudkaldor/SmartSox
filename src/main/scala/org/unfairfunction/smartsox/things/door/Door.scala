@@ -1,12 +1,12 @@
 package org.unfairfunction.smartsox.things.door
 
-//import org.unfairfunction.smartsox.actors.Thing
-//import org.unfairfunction.smartsox.actors.Thing.{GetState, DomainEvent, Uninitialized, Die}
 import akka.actor.Props
 import akka.persistence.SnapshotMetadata
 import akka.persistence.fsm.PersistentFSM.FSMState
 import akka.persistence.fsm.PersistentFSM
 import scala.reflect.ClassTag
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.{Publish, Send}
 
 object Door {
 //  import Thing._
@@ -67,6 +67,8 @@ object Door {
 class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag[Door.DomainEvent]) extends PersistentFSM[Door.State, Door.Data, Door.DomainEvent] {
   import Door._
   
+  val mediator = DistributedPubSub(context.system).mediator
+  
   log.debug(s"door $persistenceId created")
 
   startWith(Opened, EmptyData)
@@ -87,15 +89,19 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
     case Event(GetState, _) =>
       stay replying Closed
     case Event(OpenDoor, _) =>
-      goto (Opening) applying DoorOpening replying Opening andThen {
+      goto (Opening) applying DoorOpening andThen {
         case _ => {
+          mediator ! Publish(persistenceId, Opening)
           openDoor
 //          sender ! Opened
         }
       } 
     case Event(LockDoor, _) =>
-      goto (Locking) applying DoorLocking replying Locking andThen {
-        case _ => lockDoor
+      goto (Locking) applying DoorLocking andThen {
+        case _ => {
+          mediator ! Publish(persistenceId, Locking)
+          lockDoor
+        }
       }
     case Event(Die, _) =>
       stop()
@@ -109,8 +115,9 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
     case Event(GetState, _) =>
       stay replying Opened
     case Event(CloseDoor, _) =>
-      goto (Closing) applying DoorClosing replying Closing andThen {
+      goto (Closing) applying DoorClosing andThen {
         case _ => {
+          mediator ! Publish(persistenceId, Closing)
           closeDoor
         }
       }
@@ -128,7 +135,10 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
     case Event(GetState, _) =>
       stay replying Closing
     case Event(DoorClosed, _) =>
-      goto (Closed) applying DoorClosed replying Closed
+      goto (Closed) applying DoorClosed andThen {
+        case _ =>
+          mediator ! Publish(persistenceId, Closed)
+      }
 
 
     case Event(Die, _) =>
@@ -143,7 +153,11 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
     case Event(GetState, _) =>
       stay replying Opening
     case Event(DoorOpened, _) =>
-      goto (Opened) applying DoorOpened replying Opened
+      goto (Opened) applying DoorOpened andThen {
+        case _ => {
+          mediator ! Publish(persistenceId, Opened)
+        }
+      }
 
 
     case Event(Die, _) =>
@@ -158,7 +172,11 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
     case Event(GetState, _) =>
       stay replying Locking
     case Event (DoorLocked, _) =>
-      goto (Locked) applying DoorLocked replying Locked
+      goto (Locked) applying DoorLocked andThen {
+        case _ => {
+          mediator ! Publish(persistenceId, Locked)
+        }
+      }
 
 
     case Event(Die, _) =>
@@ -173,7 +191,11 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
     case Event(GetState, _) =>
       stay replying Unlocking
     case Event(DoorClosed, _) =>
-      goto (Closed) applying DoorClosed replying Closed
+      goto (Closed) applying DoorClosed andThen {
+        case _ => {
+          mediator ! Publish(persistenceId, Closed)
+        }
+      }
 
 
     case Event(Die, _) =>
@@ -188,8 +210,11 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
     case Event(GetState, _) =>
       stay replying Locked
     case Event (UnlockDoor, _) =>
-      goto (Unlocking) applying DoorUnlocking replying Unlocking andThen {
-        case _ => unlockDoor
+      goto (Unlocking) applying DoorUnlocking andThen {
+        case _ => {
+          mediator ! Publish(persistenceId, Unlocking)
+          unlockDoor
+        }
       }
 
 
@@ -197,7 +222,10 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
       stop()
     case evt =>
       stay replying Locked andThen {
-        case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
+        case _ => {
+          log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
+//          mediator ! Send(sender.path.toString(), Locked, true)
+        }
       }
   }
   
