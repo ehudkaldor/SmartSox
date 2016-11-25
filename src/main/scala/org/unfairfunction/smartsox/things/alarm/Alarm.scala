@@ -41,31 +41,31 @@ object Alarm {
   case object Die extends Command
   case object ArmAlarm extends Command
   case object DisarmAlarm extends Command
-  case class AddTrigger(val listenFor: String) extends Command
-  case class RemoveTrigger(val listenFor: String) extends Command
+  case class AddTrigger(val listenTo: String, listenFor: List[Any]) extends Command
+  case class RemoveTrigger(val listenTo: String) extends Command
   
   trait DomainEvent
   case object AlarmArmed extends DomainEvent
   case object AlarmArming extends DomainEvent
   case object AlarmDisarmed extends DomainEvent
   case object AlarmDisarming extends DomainEvent
-  case class TriggerAdded(val listenFor: String) extends DomainEvent
-  case class TriggerRemoved(val listenFor: String) extends DomainEvent
+  case class TriggerAdded(val listenTo: String, listenFor: List[Any]) extends DomainEvent
+  case class TriggerRemoved(val listenTo: String) extends DomainEvent
   
   trait Data {
-    val triggerList: Map[String, String]
-    def addTrigger(trigger: String): Data
-    def removeTrigger(trigger: String): Data
+    val triggerList: Map[String, List[Any]]
+    def addTrigger(listenTo: String, listenFor: List[Any]): Data
+    def removeTrigger(listenTo: String): Data
   }
   case object EmptyData extends Data {
-    override val triggerList: Map[String, String] = Map.empty[String, String]
-    override def addTrigger(trigger: String) = AlarmData(Map(trigger -> ""))
-    override def removeTrigger(trigger: String) = EmptyData
+    override val triggerList: Map[String, List[Any]] = Map.empty[String, List[Any]]
+    override def addTrigger(listenTo: String, listenFor: List[Any]) = AlarmData(Map(listenTo -> listenFor))
+    override def removeTrigger(listenTo: String) = EmptyData
     
   }
-  case class AlarmData(triggerList: Map[String, String]) extends Data {
-    override def addTrigger(trigger: String) = copy(triggerList + (trigger -> ""))
-    override def removeTrigger(trigger: String) = copy(triggerList - trigger)
+  case class AlarmData(triggerList: Map[String, List[Any]]) extends Data {
+    override def addTrigger(listenTo: String, listenFor: List[Any]) = copy(triggerList + (listenTo -> listenFor))
+    override def removeTrigger(listenTo: String) = copy(triggerList - listenTo)
   }
   
   
@@ -81,14 +81,14 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
  
   override def applyEvent(domainEvent: DomainEvent, currentData: Data): Data = {
     domainEvent match {
-      case TriggerAdded(trig: String) => {
-        val newData = currentData.addTrigger(trig)
-        log.debug(s"trigger $trig added. current trigger list:\n${newData.triggerList}")
+      case TriggerAdded(listenTo: String, listenFor: List[Any]) => {
+        val newData = currentData.addTrigger(listenTo, listenFor)
+        log.debug(s"trigger $listenTo added, listening for $listenFor. current trigger list:\n${newData.triggerList}")
         newData
       }
-      case TriggerRemoved(trig: String) => {
-        val newData = currentData.removeTrigger(trig)
-        log.debug(s"trigger $trig removed. current trigger list:\n${newData.triggerList}")
+      case TriggerRemoved(listenTo: String) => {
+        val newData = currentData.removeTrigger(listenTo)
+        log.debug(s"trigger $listenTo removed. current trigger list:\n${newData.triggerList}")
         newData
       }
       case AlarmArming => {
@@ -113,13 +113,13 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
       goto (Arming) applying AlarmArming andThen {
         case _ => armAlarm
       }
-    case Event(AddTrigger(trig), _) =>
-      stay applying TriggerAdded(trig) forMax(1 seconds) andThen {
-        case _ => log.debug(s"alarm $persistenceId: added trigger $trig")
+    case Event(AddTrigger(listenTo, listenFor), _) =>
+      stay applying TriggerAdded(listenTo, listenFor) forMax(1 seconds) andThen {
+        case _ => log.debug(s"alarm $persistenceId: adding trigger $listenTo, listening for $listenFor")
       }
-    case Event(RemoveTrigger(trig), _) =>
-      stay applying TriggerRemoved(trig) forMax(1 seconds) andThen {
-        case _ => log.debug(s"alarm $persistenceId: removed trigger $trig")
+    case Event(RemoveTrigger(listenTo), _) =>
+      stay applying TriggerRemoved(listenTo) forMax(1 seconds) andThen {
+        case _ => log.debug(s"alarm $persistenceId: removing trigger $listenTo")
       }
     case Event(Die, _) =>
       stop()
@@ -136,13 +136,13 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
       goto (Armed) applying AlarmArmed andThen {
         case _ => log.debug(s"alarm $persistenceId: alarm armed")
       }
-    case Event(AddTrigger(trig), _) =>
-      stay applying TriggerAdded(trig) forMax(1 seconds) andThen {
-        case _ => log.debug(s"alarm $persistenceId: added trigger $trig")
+    case Event(AddTrigger(listenTo, listenFor), _) =>
+      stay applying TriggerAdded(listenTo, listenFor) forMax(1 seconds) andThen {
+        case _ => log.debug(s"alarm $persistenceId: adding trigger $listenTo, listening for $listenFor")
       }
     case Event(RemoveTrigger(trig), _) =>
       stay applying TriggerRemoved(trig) forMax(1 seconds) andThen {
-        case _ => log.debug(s"alarm $persistenceId: removed trigger $trig")
+        case _ => log.debug(s"alarm $persistenceId: removing trigger $trig")
       }
     case Event(Die, _) =>
       stop()
@@ -159,13 +159,13 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
       goto (Disarming) applying AlarmDisarming andThen {
         case _ => disarmAlarm
       }
-    case Event(AddTrigger(trig), _) =>
-      stay applying TriggerAdded(trig) forMax(1 seconds) andThen {
-        case _ => log.debug(s"alarm $persistenceId: added trigger $trig")
+    case Event(AddTrigger(listenTo, listenFor), _) =>
+      stay applying TriggerAdded(listenTo, listenFor) forMax(1 seconds) andThen {
+        case _ => log.debug(s"alarm $persistenceId: adding trigger $listenTo, listening to $listenFor")
       }
     case Event(RemoveTrigger(trig), _) =>
       stay applying TriggerRemoved(trig) forMax(1 seconds) andThen {
-        case _ => log.debug(s"alarm $persistenceId: removed trigger $trig")
+        case _ => log.debug(s"alarm $persistenceId: removing trigger $trig")
       }
     case Event(Die, _) =>
       stop()
@@ -182,9 +182,9 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
       goto (Disarmed) applying AlarmDisarmed andThen {
         case _ => log.debug(s"alarm $persistenceId: alarm disarmed")
       }
-    case Event(AddTrigger(trig), _) =>
-      stay applying TriggerAdded(trig) forMax(1 seconds) andThen {
-        case _ => log.debug(s"alarm $persistenceId: added trigger $trig")
+    case Event(AddTrigger(listenTo, listenFor), _) =>
+      stay applying TriggerAdded(listenTo, listenFor) forMax(1 seconds) andThen {
+        case _ => log.debug(s"alarm $persistenceId: added trigger $listenTo, listening to $listenFor")
       }
     case Event(RemoveTrigger(trig), _) =>
       stay applying TriggerRemoved(trig) forMax(1 seconds) andThen {
