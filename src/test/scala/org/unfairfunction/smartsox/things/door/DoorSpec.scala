@@ -4,14 +4,10 @@ import akka.actor.{ActorSystem, PoisonPill, Terminated}
 import scala.concurrent.duration._
 import akka.util.Timeout
 import akka.testkit._
-//import org.unfairfunction.smartsox.actors.Thing
 import org.unfairfunction.smartsox.things.door.Door._
-//import org.unfairfunction.smartsox.actors.Thing.{GetState, Uninitialized, Die}
-import org.scalatest.Matchers
-import org.scalatest.FlatSpecLike
+import org.scalatest.{Matchers, FlatSpecLike}
 import akka.cluster.pubsub.DistributedPubSub
-import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
-import akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck
+import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 
 class DoorSpec(system: ActorSystem)
   extends TestKit(system)
