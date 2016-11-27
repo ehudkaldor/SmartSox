@@ -47,7 +47,7 @@ class DoorsManager extends Actor with ActorLogging {
     context child id getOrElse create(id)
 
   protected def create(id: String): ActorRef = {
-    val nextThing = context.actorOf(thingProps(id), id)
+    val nextThing = context.actorOf(Door.props, id)
     context watch nextThing
     nextThing
   }
@@ -55,5 +55,5 @@ class DoorsManager extends Actor with ActorLogging {
     
   def props(id: String) = DoorsManager.props(id)
   
-  def thingProps(id: String) = Door.props(id)
+//  def thingProps(id: String) = Door.props(id)
 }
