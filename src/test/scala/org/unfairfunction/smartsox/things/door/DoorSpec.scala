@@ -26,12 +26,12 @@ class DoorSpec(system: ActorSystem)
 //  }
   
   "Door" should "should be created correctly" in {
-    val door = system.actorOf(Door.props("testdoorCreate"))
+    val door = system.actorOf(Door.props, "testdoorCreate")
     door should not be null
   }
   
   it should "return state Opened if not changed" in {
-    val door = system.actorOf(Door.props("testdoorUninitialized"))
+    val door = system.actorOf(Door.props, "testdoorUninitialized")
     door should not be null
     door ! GetState
     expectMsg(Opened)
@@ -49,7 +49,7 @@ class DoorSpec(system: ActorSystem)
   
   it should "return state Closing after sending message to close door, and Closed on GetState afterwards" in {
 
-    val door = system.actorOf(Door.props("testdoorClose"))
+    val door = system.actorOf(Door.props, "testdoorClose")
     val mediator = DistributedPubSub(system).mediator
     mediator ! Subscribe("testdoorClose", self)
     expectMsgType[SubscribeAck]
@@ -63,7 +63,7 @@ class DoorSpec(system: ActorSystem)
   }
   
   it should "only lock from Closed state" in {
-    val door = system.actorOf(Door.props("testdoorLockFromClosedOnly"))
+    val door = system.actorOf(Door.props, "testdoorLockFromClosedOnly")
     val mediator = DistributedPubSub(system).mediator
     
     mediator ! Subscribe("testdoorLockFromClosedOnly", self)
@@ -99,7 +99,7 @@ class DoorSpec(system: ActorSystem)
   }
   
   it should "return state Locking after sending message to lock door, and Locked on GetState afterwords" in {
-    val door = system.actorOf(Door.props("testdoorLock"))
+    val door = system.actorOf(Door.props, "testdoorLock")
     val mediator = DistributedPubSub(system).mediator
     mediator ! Subscribe("testdoorLock", self)
     expectMsgType[SubscribeAck]
@@ -116,7 +116,7 @@ class DoorSpec(system: ActorSystem)
   }
   
   it should "stay locked when told to lock, even on sending open and close messages, and return state Closed when told to unlock" in {
-    val door = system.actorOf(Door.props("testdoorStayLocked"))
+    val door = system.actorOf(Door.props, "testdoorStayLocked")
     val mediator = DistributedPubSub(system).mediator
     mediator ! Subscribe("testdoorStayLocked", self)
     expectMsgType[SubscribeAck]
@@ -145,7 +145,7 @@ class DoorSpec(system: ActorSystem)
   }
   
   it should "die after instructed to die" in {
-    val door = system.actorOf(Door.props("testdoorDie"))
+    val door = system.actorOf(Door.props, "testdoorDie")
     watch(door)
     door ! Die
     expectMsg(Terminated(door)(true, true))
