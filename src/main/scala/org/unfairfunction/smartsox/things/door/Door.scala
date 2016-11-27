@@ -61,12 +61,14 @@ object Door {
   case class DoorData() extends Data
   
   
-  def props(id: String): Props = Props(new Door(id))
+  def props: Props = Props(new Door())
 }
 
-class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag[Door.DomainEvent]) extends PersistentFSM[Door.State, Door.Data, Door.DomainEvent] {
+class Door(implicit val domainEventClassTag: ClassTag[Door.DomainEvent]) extends PersistentFSM[Door.State, Door.Data, Door.DomainEvent] {
   import Door._
   
+  val persistenceId: String = self.path.name
+
   val mediator = DistributedPubSub(context.system).mediator
   
   log.debug(s"door $persistenceId created")
@@ -83,6 +85,26 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
       case DoorUnlocking => currentData
       case DoorLocked => currentData
     }
+  }
+  
+  when (Opened) {
+    case Event(GetState, _) =>
+      stay replying Opened
+    case Event(CloseDoor, _) =>
+      goto (Closing) applying DoorClosing andThen {
+        case _ => {
+          mediator ! Publish(persistenceId, Closing)
+          closeDoor
+        }
+      }
+
+
+    case Event(Die, _) =>
+      stop()
+    case evt =>
+      stay replying Opened andThen {
+        case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
+      }
   }
   
   when (Closed) {
@@ -107,26 +129,6 @@ class Door(val persistenceId: String)(implicit val domainEventClassTag: ClassTag
       stop()
     case evt =>
       stay replying Closed andThen {
-        case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
-      }
-  }
-  
-  when (Opened) {
-    case Event(GetState, _) =>
-      stay replying Opened
-    case Event(CloseDoor, _) =>
-      goto (Closing) applying DoorClosing andThen {
-        case _ => {
-          mediator ! Publish(persistenceId, Closing)
-          closeDoor
-        }
-      }
-
-
-    case Event(Die, _) =>
-      stop()
-    case evt =>
-      stay replying Opened andThen {
         case _ => log.debug(s"door $persistenceId, received event $evt and not sure what to do. ignoring")
       }
   }
