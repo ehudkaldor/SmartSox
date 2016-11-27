@@ -10,11 +10,9 @@ import org.unfairfunction.smartsox.things.alarm.Alarm._
 import org.unfairfunction.smartsox.things.door.Door
 import org.unfairfunction.smartsox.things.door.Door._
 import akka.cluster.pubsub.DistributedPubSub
-import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
-import akka.cluster.pubsub.DistributedPubSubMediator.SubscribeAck
+import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import org.unfairfunction.smartsox.things.door.DoorsManager
-import org.unfairfunction.smartsox.things.door.DoorsManager.AddDoor
-import org.unfairfunction.smartsox.things.door.DoorsManager.Close
+import org.unfairfunction.smartsox.things.door.DoorsManager.{AddDoor, Close}
 
 class AlarmSpec(system: ActorSystem)
   extends TestKit(system)
