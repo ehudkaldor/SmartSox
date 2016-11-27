@@ -1,16 +1,13 @@
 package org.unfairfunction.smartsox.things.alarm
 
-//import org.unfairfunction.smartsox.actors.Thing
 import akka.actor.Props
 import akka.persistence.SnapshotMetadata
-//import scala.collection.mutable.Map
-//import org.unfairfunction.smartsox.actors.Thing.Data
 import scala.concurrent.duration.DurationInt
-//import org.unfairfunction.smartsox.actors.Thing.EmptyData
 import akka.persistence.fsm.PersistentFSM
 import akka.persistence.fsm.PersistentFSM.FSMState
 import scala.reflect.ClassTag
-//import org.unfairfunction.smartsox.actors.Thing.EmptyData
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.{Publish,Subscribe, Unsubscribe}
 
 object Alarm {
 //  import Thing.{Command, DomainEvent, State}
@@ -55,6 +52,8 @@ object Alarm {
   
   trait Data {
 //    val triggerList: Map[String, List[Any]]
+    val listenTo: String = ""
+    val listenFor: List[Any] = List.empty[Any]
     def setTrigger(listenTo: String, listenFor: List[Any]): Data
     def unsetTrigger: Data
   }
@@ -64,19 +63,25 @@ object Alarm {
     override def unsetTrigger = EmptyData
     
   }
-  case class AlarmData(listenTo: String, listenFor: List[Any]) extends Data {
+  case class AlarmData(override val listenTo: String, override val listenFor: List[Any]) extends Data {
     override def setTrigger(listenTo: String, listenFor: List[Any]) = AlarmData(listenTo, listenFor)
     override def unsetTrigger: Data = EmptyData
   }
   
   
-  def props(id: String): Props = Props(new Alarm(id))
+//  def props(id: String): Props = Props(new Alarm(id))
+  def props: Props = Props(new Alarm())
 }
 
-class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTag[Alarm.DomainEvent]) extends PersistentFSM[Alarm.State, Alarm.Data, Alarm.DomainEvent] {
+//class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTag[Alarm.DomainEvent]) extends PersistentFSM[Alarm.State, Alarm.Data, Alarm.DomainEvent] {
+class Alarm(implicit val domainEventClassTag: ClassTag[Alarm.DomainEvent]) extends PersistentFSM[Alarm.State, Alarm.Data, Alarm.DomainEvent] {
     
   import Alarm._
 //  import Thing.{Uninitialized, GetState, Die, DomainEvent}
+  
+  val persistenceId: String = self.path.name
+  
+  val mediator = DistributedPubSub(context.system).mediator
   
   log.debug(s"alarm $persistenceId created")
   
@@ -86,20 +91,22 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
     domainEvent match {
       case TriggerSet(listenTo: String, listenFor: List[Any]) => {
         val newData = currentData.setTrigger(listenTo, listenFor)
+        mediator ! Subscribe(listenTo, self)
         log.debug(s"trigger $listenTo set, listening for $listenFor")
         newData
       }
       case TriggerUnset(listenTo: String) => {
         val newData = currentData.unsetTrigger
+        mediator ! Unsubscribe(listenTo, self)
         log.debug(s"trigger $listenTo unset")
         newData
       }
       case AlarmArming => {
-        armAlarm
+//        armAlarm
         currentData
       }
       case AlarmDisarming => {
-        disarmAlarm
+//        disarmAlarm
         currentData
       }
       case AlarmArmed =>
@@ -116,7 +123,10 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
       stay replying data
     case Event(ArmAlarm, _) =>
       goto (Arming) applying AlarmArming andThen {
-        case _ => armAlarm
+        case _ => {
+          mediator ! Publish(persistenceId, Arming)
+          armAlarm
+        }
       }
     case Event(SetTrigger(listenTo, listenFor), _) =>
       stay applying TriggerSet(listenTo, listenFor) andThen {
@@ -139,7 +149,10 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
       stay replying Arming
     case Event(AlarmArmed, _) =>
       goto (Armed) applying AlarmArmed andThen {
-        case _ => log.debug(s"alarm $persistenceId: alarm armed")
+        case _ => {
+          mediator ! Publish(persistenceId, Armed)
+          log.debug(s"alarm $persistenceId: alarm armed")
+        }
       }
     case Event(SetTrigger(listenTo, listenFor), _) =>
       stay applying TriggerSet(listenTo, listenFor) forMax(1 seconds) andThen {
@@ -162,7 +175,10 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
       stay replying Armed
     case Event(DisarmAlarm, _) =>
       goto (Disarming) applying AlarmDisarming andThen {
-        case _ => disarmAlarm
+        case _ => {
+          mediator ! Publish(persistenceId, Disarming)
+          disarmAlarm
+        }
       }
     case Event(SetTrigger(listenTo, listenFor), _) =>
       stay applying TriggerSet(listenTo, listenFor) forMax(1 seconds) andThen {
@@ -175,8 +191,21 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
     case Event(Die, _) =>
       stop()
     case evt =>
-      stay andThen {
-        case _ => log.debug(s"alarm $persistenceId, received event $evt and not sure what to do. ignoring")
+      log.debug(s"got event ${evt}, event in list: ${evt.stateData.listenFor.contains(evt.event)}, sender is listenTo: ${sender.path.name == evt.stateData.listenTo}")
+      if (evt.stateData.listenFor.contains(evt.event)) {
+            log.debug(s"**********  ALARM TRIGGERED by ${evt.stateData.listenTo} for event ${evt.event}   ************************ ")
+            mediator ! Publish(persistenceId, Triggered)
+      }
+      evt.event match {
+        case e if evt.stateData.listenFor.contains(e) => stay andThen {
+          case _ => {
+            log.debug(s"**********  ALARM TRIGGERED by ${evt.stateData.listenTo} for event ${evt.event}, sender: $sender ************************ ")
+            mediator ! Publish(persistenceId, Triggered)
+          }
+        }
+        case _ => stay andThen {
+          case _ => log.debug(s"alarm $persistenceId, received event $evt and not sure what to do. ignoring")
+        }
       }
   }
   
@@ -185,7 +214,10 @@ class Alarm(val persistenceId: String)(implicit val domainEventClassTag: ClassTa
       stay replying Disarming
     case Event(AlarmDisarmed, _) =>
       goto (Disarmed) applying AlarmDisarmed andThen {
-        case _ => log.debug(s"alarm $persistenceId: alarm disarmed")
+        case _ => {
+          mediator ! Publish(persistenceId, Disarmed)
+          log.debug(s"alarm $persistenceId: alarm disarmed")
+        }
       }
     case Event(SetTrigger(listenTo, listenFor), _) =>
       stay applying TriggerSet(listenTo, listenFor) forMax(1 seconds) andThen {
