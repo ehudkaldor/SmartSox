@@ -1,8 +1,11 @@
 name := """smartsox"""
-version := "2.4.11"
+version := "0.1.0-SNAPSHOT"
 scalaVersion := "2.11.8"
 
-enablePlugins(JavaAppPackaging)
+lazy val akkaVersion = "2.4.14"
+
+enablePlugins(JavaAppPackaging, SbtWeb)
+
 
 maintainer := "Ehud Kaldor"
 packageSummary := s"Akka ${version.value} Server"
@@ -10,20 +13,29 @@ packageSummary := s"Akka ${version.value} Server"
 resolvers += Resolver.jcenterRepo
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"           %% "akka-actor" % version.value,
-  "com.typesafe.akka"           %% "akka-cluster" % version.value,
-  "com.typesafe.akka"           %% "akka-cluster-tools" % version.value,
-  "com.typesafe.akka"           %% "akka-persistence" % version.value,
-  "com.typesafe.akka"           %% "akka-slf4j" % version.value,
-  "com.typesafe.akka"           %% "akka-testkit" % version.value % "test",
+
+  //akka
+  "com.typesafe.akka"           %% "akka-actor" % akkaVersion,
+  "com.typesafe.akka"           %% "akka-cluster" % akkaVersion,
+  "com.typesafe.akka"           %% "akka-cluster-tools" % akkaVersion,
+  "com.typesafe.akka"           %% "akka-persistence" % akkaVersion,
+  "com.typesafe.akka"           %% "akka-slf4j" % akkaVersion,
+  "com.typesafe.akka"           %% "akka-testkit" % akkaVersion % "test",
+  
+  //akka-http
+  "com.typesafe.akka"           %% "akka-http" % "10.0.0" ,
+  
+  //akka db (persistence
   "org.iq80.leveldb"            % "leveldb"          % "0.7",
   "org.fusesource.leveldbjni"   % "leveldbjni-all"   % "1.8",
+  "com.github.dnvriend"         %% "akka-persistence-inmemory" % "1.3.11",
+  
   "ch.qos.logback"              % "logback-classic" % "1.1.7",
   "org.scalatest"               %% "scalatest" % "2.2.1" % "test",
   "com.github.romix.akka"       %% "akka-kryo-serialization" % "0.4.1",
-  "com.github.scopt"            %% "scopt" % "3.2.0",
-  "com.github.dnvriend"         %% "akka-persistence-inmemory" % "1.3.11"
+  "com.github.scopt"            %% "scopt" % "3.2.0"
 )
+
 
 // Create custom run tasks to start a seed and a cluster node
 // http://www.scala-sbt.org/0.13.0/docs/faq.html#how-can-i-create-a-custom-run-task-in-addition-to-run
