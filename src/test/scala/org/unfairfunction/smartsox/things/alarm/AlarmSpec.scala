@@ -5,12 +5,12 @@ import org.scalatest.{Matchers, FlatSpecLike}
 import org.unfairfunction.smartsox.things.door.InMemoryCleanup
 import akka.actor.ActorSystem
 import akka.util.Timeout
+import akka.cluster.pubsub.DistributedPubSub
+import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import scala.concurrent.duration._
 import org.unfairfunction.smartsox.things.alarm.Alarm._
 import org.unfairfunction.smartsox.things.door.Door
 import org.unfairfunction.smartsox.things.door.Door._
-import akka.cluster.pubsub.DistributedPubSub
-import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import org.unfairfunction.smartsox.things.door.DoorsManager
 import org.unfairfunction.smartsox.things.door.DoorsManager.{AddDoor, Close}
 
