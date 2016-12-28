@@ -1,116 +1,18 @@
 package org.unfairfunction.smartsox.actors
 
-import java.util.Date
-//import akka.persistence.{PersistentActor, SnapshotOffer, SnapshotMetadata}
-import akka.actor.{Actor, ActorLogging}
-import org.unfairfunction.smartsox.util.Acknowledge
-import java.util.Calendar
-import akka.persistence.fsm.PersistentFSM
-import akka.persistence.fsm.PersistentFSM.{FSMState, Reason}
-import scala.reflect.{ClassTag, classTag}
+import org.json4s.JsonDSL._
+import org.json4s.JsonAST.JValue
+import org.json4s.DefaultFormats
+import org.json4s.FieldSerializer
+import com.github.nscala_time.time.Imports._
+import org.joda.time.DateTime
+import org.json4s.ext.JodaTimeSerializers
 
-object Thing {
-  trait State extends FSMState
-  case object Uninitialized extends State {
-    override def identifier: String = "uninitialized"
-  }
-  case object Retired extends State {
-    override def identifier: String = "retired"
-  }
-  
-  trait Data {
-    def empty: Data = EmptyData
-  }
-  
-  case object EmptyData extends Data
+//import org.
 
-  
-  trait DomainEvent {
-    protected val createTime: Calendar = Calendar.getInstance
-  }
-  case object ThingRetired extends DomainEvent
-  trait CommandFailed extends DomainEvent
-
-  trait Command {
-    protected val createTime: Calendar = Calendar.getInstance
-  }
-
-  case object GetState extends Command
-  case object Die extends Command
-  case object Retire extends Command
-  case object Unretire extends Command
-
-//  case object KillThing extends Command
-
-  val eventsPerSnapshot = 10  
-}
-
-//trait Thing extends Actor with PersistentActor with ActorLogging{
-trait Thing extends Actor with PersistentFSM[Thing.State, Thing.Data, Thing.DomainEvent] with ActorLogging{
-  import Thing._
-  import akka.cluster.pubsub.DistributedPubSub
-  import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, Publish}
-  
-  val mediator = DistributedPubSub(context.system).mediator
-  
-  override val persistenceId: String
-  
-	override def domainEventClassTag: ClassTag[DomainEvent] = classTag[DomainEvent]
-
-  startWith(Uninitialized, EmptyData)
-	
-//	override def applyEvent(domainEvent: DomainEvent, currentData: Data): Data
-  
-  when (Uninitialized) {
-    case Event(GetState, data) =>
-      stay replying data
-    case Event(Retire, _) =>
-      goto (Retired) applying ThingRetired 
-  }
-
-  private var eventsSinceLastSnapshot = 0
-
-//  def updateState(evt: DomainEvent): Unit
-  
-  mediator ! Subscribe("general", self)
- 
-  protected def afterEventPersisted(evt: DomainEvent): Unit = {
-    eventsSinceLastSnapshot += 1
-    if (eventsSinceLastSnapshot >= eventsPerSnapshot) {
-      log.debug(s"$eventsPerSnapshot events reached, saving snapshot")
-      saveStateSnapshot()
-      eventsSinceLastSnapshot = 0
-    }
-//    updateAndRespond(evt)
-    publish(evt)
-  }
-
-//  private def updateAndRespond(evt: DomainEvent): Unit = {
-//    updateState(evt)
-//    respond()
-//  }
-
-  protected def respond(): Unit = {
-//    log.debug(s"sender: $sender()")
-//    sender() ! state
-    context.parent ! Acknowledge(persistenceId)
-  }
-
-  private def publish(event: DomainEvent) = {
-    context.system.eventStream.publish(event)
-    mediator ! Publish(persistenceId, event)
-  }
-  
-//  override val receiveRecover: Receive = {
-//    case evt: DomainEvent =>
-//      log.debug(s"recovering event $evt from snapshot")
-//      eventsSinceLastSnapshot += 1
-//      updateState(evt)
-//    case SnapshotOffer(metadata, state: State) =>
-//      log.debug("recovering aggregate from snapshot")
-//      restoreFromSnapshot(metadata, state)
-//  }
-
-//  protected def restoreFromSnapshot(metadata: SnapshotMetadata, state: State)
-
+trait Thing {
+  implicit val formats = DefaultFormats + FieldSerializer[Thing]() ++ JodaTimeSerializers.all
+    
+  val name: String
+  val created: DateTime = DateTime.now
 }
