@@ -14,6 +14,9 @@ resolvers += Resolver.jcenterRepo
 
 libraryDependencies ++= Seq(
 
+  //nscala-time
+  "com.github.nscala-time" %% "nscala-time" % "2.16.0",
+
   //akka
   "com.typesafe.akka"           %% "akka-actor" % akkaVersion,
   "com.typesafe.akka"           %% "akka-cluster" % akkaVersion,
@@ -29,6 +32,11 @@ libraryDependencies ++= Seq(
   "org.iq80.leveldb"            % "leveldb"          % "0.7",
   "org.fusesource.leveldbjni"   % "leveldbjni-all"   % "1.8",
   "com.github.dnvriend"         %% "akka-persistence-inmemory" % "1.3.11",
+  
+  //json4s
+  "org.json4s"                  %% "json4s-native" % "3.5.0",
+  "org.json4s"                  %% "json4s-ext" % "3.5.0",
+  "de.heikoseeberger"           %% "akka-http-json4s" % "1.11.0",
   
   "ch.qos.logback"              % "logback-classic" % "1.1.7",
   "org.scalatest"               %% "scalatest" % "2.2.1" % "test",
