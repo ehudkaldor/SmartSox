@@ -9,10 +9,13 @@ import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.{Subscribe, SubscribeAck}
 import scala.concurrent.duration._
 import org.unfairfunction.smartsox.things.alarm.Alarm._
-import org.unfairfunction.smartsox.things.door.Door
-import org.unfairfunction.smartsox.things.door.Door._
+import org.unfairfunction.smartsox.things.door.DoorActor
+import org.unfairfunction.smartsox.things.door.DoorActor._
 import org.unfairfunction.smartsox.things.door.DoorsManager
 import org.unfairfunction.smartsox.things.door.DoorsManager.{AddDoor, Close}
+import org.unfairfunction.smartsox.actors.ThingsManager
+import org.unfairfunction.smartsox.actors.ThingsManager.Create
+import org.unfairfunction.smartsox.things.door.Door
 
 class AlarmSpec(system: ActorSystem)
   extends TestKit(system)
@@ -40,7 +43,8 @@ class AlarmSpec(system: ActorSystem)
   
   it should "set trigger" in {
     val alarm = system.actorOf(Alarm.props, "alarmTestSetTrigger")
-    val door = system.actorOf(Door.props, "doorTestSetTrigger")
+    val door = Door("doorTestSetTrigger")
+    val doorActor = system.actorOf(DoorActor.props(door), door.name)
     alarm ! Alarm.GetState
     expectMsg(Disarmed)
     alarm ! SetTrigger("doorTestAlarm", List(Opened))
@@ -50,7 +54,8 @@ class AlarmSpec(system: ActorSystem)
   
   it should "trigger an alarm on door opening" in {
     val alarm = system.actorOf(Alarm.props,"alarmTestTrigger")
-    val door = system.actorOf(Door.props,"doorTestAlarm")
+    val door = Door("doorTestAlarm")
+    val doorActor = system.actorOf(DoorActor.props(door), door.name)
     val mediator = DistributedPubSub(system).mediator
     
     mediator ! Subscribe("alarmTestTrigger", self)
@@ -59,7 +64,7 @@ class AlarmSpec(system: ActorSystem)
     mediator ! Subscribe("doorTestAlarm", self)
     expectMsgType[SubscribeAck]
     
-    door ! CloseDoor
+    doorActor ! CloseDoor
     expectMsg(Closing)
     expectMsg(Closed)
 
@@ -71,7 +76,7 @@ class AlarmSpec(system: ActorSystem)
     expectMsg(Arming)
     expectMsg(Armed)
     
-    door ! OpenDoor
+    doorActor ! OpenDoor
     
     expectMsg(Opening)
     expectMsg(Opened)
@@ -83,7 +88,7 @@ class AlarmSpec(system: ActorSystem)
     
     val alarm = system.actorOf(Alarm.props,"alarmTestTriggerWithDoorsManager")
     val dm = system.actorOf(DoorsManager.props("DoorsManager"), "DoorsManager")
-    dm ! AddDoor("doorTestAlarmWithDoorsManager")
+    dm ! Create(Door("doorTestAlarmWithDoorsManager"))
     expectMsg(Opened)
     val mediator = DistributedPubSub(system).mediator
     mediator ! Subscribe("doorTestAlarmWithDoorsManager", self)
@@ -91,7 +96,7 @@ class AlarmSpec(system: ActorSystem)
     mediator ! Subscribe("alarmTestTriggerWithDoorsManager", self)
     expectMsgType[SubscribeAck]
 
-    dm ! DoorsManager.GetState("doorTestAlarmWithDoorsManager")
+    dm ! ThingsManager.GetState("doorTestAlarmWithDoorsManager")
     expectMsg(Opened)
     dm ! Close("doorTestAlarmWithDoorsManager")
     expectMsg(Closing)

@@ -8,8 +8,10 @@ import akka.testkit.ImplicitSender
 import akka.testkit.TestKit
 import akka.actor.ActorSystem
 import akka.util.Timeout
-import org.unfairfunction.smartsox.things.door.DoorsManager.{AddDoor, RemoveDoor, Open, Close, GetState}
-import org.unfairfunction.smartsox.things.door.Door.{DoorOpening, Opening, Opened, Closing, Closed}
+import org.unfairfunction.smartsox.actors.ThingsManager
+import org.unfairfunction.smartsox.actors.ThingsManager.Create
+import org.unfairfunction.smartsox.things.door.DoorsManager.{AddDoor, RemoveDoor, Open, Close}
+import org.unfairfunction.smartsox.things.door.DoorActor.{DoorOpening, Opening, Opened, Closing, Closed}
 import akka.actor.Terminated
 import akka.cluster.pubsub.DistributedPubSub
 import akka.cluster.pubsub.DistributedPubSubMediator.Subscribe
@@ -34,20 +36,20 @@ class DoorsManagerSpec(system: ActorSystem)
   
   it should "create a new door" in {
     val dm = system.actorOf(DoorsManager.props("DoorsManager2"), "DoorsManager2")
-    dm ! AddDoor("DoorsManagerTestDoor2")
+    dm ! Create(Door("DoorsManagerTestDoor2"))
     expectMsg(Opened)    
   }
   
   it should "open a door and then close it" in {
     val dm = system.actorOf(DoorsManager.props("DoorsManager3"), "DoorsManager3")
-    dm ! AddDoor("DoorsManagerTestDoor3")
+    dm ! Create(Door("DoorsManagerTestDoor3"))
     expectMsg(Opened)
     val mediator = DistributedPubSub(system).mediator
     mediator ! Subscribe("DoorsManagerTestDoor3", self)
     expectMsgType[SubscribeAck]
 //    dm ! Open("DoorsManagerTestDoor3")
 //    expectMsg(Opening)
-    dm ! GetState("DoorsManagerTestDoor3")
+    dm ! ThingsManager.GetState("DoorsManagerTestDoor3")
     expectMsg(Opened)
     dm ! Close("DoorsManagerTestDoor3")
 //    expectMsg(Closing)
@@ -59,7 +61,7 @@ class DoorsManagerSpec(system: ActorSystem)
   
   it should "destroy a door" in {
     val dm = system.actorOf(DoorsManager.props("DoorsManager4"),"DoorsManager4")
-    dm ! AddDoor("DoorsManagerTestDoor4")
+    dm ! Create(Door("DoorsManagerTestDoor4"))
     expectMsg(Opened)
     val mediator = DistributedPubSub(system).mediator
     mediator ! Subscribe("DoorsManagerTestDoor4", self)
@@ -67,7 +69,7 @@ class DoorsManagerSpec(system: ActorSystem)
     dm ! Close("DoorsManagerTestDoor4")
     expectMsg(Closing)
     Thread.sleep(1000)
-    dm ! GetState("DoorsManagerTestDoor4")
+    dm ! ThingsManager.GetState("DoorsManagerTestDoor4")
     expectMsg(Closed)
 
     dm ! RemoveDoor("DoorsManagerTestDoor4")
@@ -76,5 +78,4 @@ class DoorsManagerSpec(system: ActorSystem)
 //    dm ! AddDoor("DoorsManagerTestDoor4")
 //    expectMsg(Opened)
   }
-  
 }
